@@ -4,8 +4,8 @@ from matplotlib import colors
 
 UP = 0
 DOWN = 1
-LEFT = 3
-RIGHT = 4
+LEFT = 2
+RIGHT = 3
 
 class GridWorldEnv(object):
     '''
@@ -15,7 +15,7 @@ class GridWorldEnv(object):
         action_fail_prob: probability with which chosen action fails and a random action is instead taken
     '''
     def __init__(self, grid_file, start_states = [(0,0)], goal_states = [(10,10)], goal_reward = 10, max_steps = 100,
-                    action_fail_prob = 0.1, seed = None):
+                    action_fail_prob = 0.0, seed = None):
         # Load the grid from txt file
         self.grid = np.loadtxt(grid_file, delimiter=' ').astype('int')
         self.random_generator = np.random.RandomState(seed)
@@ -26,6 +26,7 @@ class GridWorldEnv(object):
         self.max_steps = max_steps
         self.action_fail_prob = action_fail_prob
         self.action_space = [UP, DOWN, LEFT, RIGHT]
+        self.reset()
     
     '''
     is_in_grid: Check to see if given coord_x,coord_y coordinates is inside the grid
@@ -55,6 +56,7 @@ class GridWorldEnv(object):
         self.goal = self.choose_state(self.goal_states) if goal_state is None else goal_state
         self.done = False
         self.steps = 0
+        return self.state
 
     '''
     step: change the state after taking action
@@ -91,23 +93,30 @@ class GridWorldEnv(object):
         if self.steps >= self.max_steps:
             self.done = True
         
-        self.reward = self.grid[self.state[0], self.state[1]]
+        self.reward = - self.grid[self.state[0], self.state[1]]
 
         return self.state, self.reward, self.done
 
     '''
     render: render a plot of the environment
     '''
-    def render(self):
+    def render(self, render_agent = False, ax = None):
         grid = self.grid.copy()
         grid[self.start_state[0], self.start_state] = 3
         grid[self.goal[0], self.goal[1]] = 4
-        grid[self.state[0], self.state[1]] = 5
-
+        if render_agent:
+            grid[self.state[0], self.state[1]] = 5
+        grid = np.flip(grid, 0)
         plt.clf()
-        cmap = colors.ListedColormap(['#F5E5E1', '#F2A494', '#FF2D00', '#0004FF', '#00FF23', '#F0FF00'])
-        fig, ax = plt.subplots()
-        ax.imshow(grid, cmap=cmap)
+        if not render_agent:
+            cmap = colors.ListedColormap(['#F5E5E1', '#F2A494', '#FF2D00', '#0004FF', '#00FF23'])
+        else:
+            cmap = colors.ListedColormap(['#F5E5E1', '#F2A494', '#FF2D00', '#0004FF', '#00FF23', '#F0FF00'])
+        if ax is None:
+            fig, ax = plt.subplots()
+        
+        ax.pcolor(grid, cmap=cmap, edgecolors='k', linewidths=2)
+        
     
     '''
     render_policy: render a learnt policy
